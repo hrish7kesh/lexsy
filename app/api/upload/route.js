@@ -20,7 +20,8 @@ export async function POST(req) {
 
     const docBuffer = readFileSync(filePath);
     const { value: text } = await mammoth.extractRawText({ buffer: docBuffer });
-    const placeholders = [...new Set(text.match(/\[[^\]]+\]/g))];
+    let placeholders = [...new Set(text.match(/\[[^\]]+\]/g))] || [];
+    placeholders = placeholders.filter(p => !/^\[_+\]$/.test(p.trim()) && p.trim().length > 2);
 
     return NextResponse.json({ placeholders });
   } catch (error) {
