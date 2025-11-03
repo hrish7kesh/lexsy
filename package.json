@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "docx": "^9.5.1",
-    "docxtemplater": "^3.67.1",
+    "docxtemplater": "^3.67.3",
     "fast-xml-parser": "^5.3.0",
     "file-saver": "^2.0.5",
     "groq-sdk": "^0.34.0",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
