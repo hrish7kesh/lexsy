@@ -1,41 +1,58 @@
-// fileBuffer is ArrayBuffer; get xml
-import PizZip from 'pizzip'
-// ...read buffer
-const zip = new PizZip(buffer);
-const documentXml = zip.file("word/document.xml").async("string"); // await needed
+'use client'
 
-// Use regex on documentXml for placeholders
-const placeholderRegex = /\[([^\]]+)\]/g;
-const detected = new Map();
-let match;
-while ((match = placeholderRegex.exec(documentXml)) !== null) {
-  const raw = match[0]; // e.g. "[name]"
-  const keyInner = match[1].trim(); // e.g. "name" or "Company Name" or "_____________"
-  const index = match.index;
+import { useState } from 'react'
+import type { PlaceholderInfo } from '@/types/placeholders'
 
-  // Filter out blank-only underscores
-  if (/^_+$/.test(keyInner) || keyInner.length <= 1) continue;
+interface FileUploadProps {
+  onFileUploaded: (previewText: string, detected: Map<string, PlaceholderInfo>, templateFilename: string) => void
+}
 
-  // Infer context by looking backwards a chunk of XML/text
-  const before = documentXml.slice(Math.max(0, index - 400), index).toLowerCase();
-  let context: 'company' | 'investor' | null = null;
-  if (before.includes('company') && !before.includes('investor')) context = 'company';
-  if (before.includes('investor') && !before.includes('company')) context = 'investor';
+export default function FileUpload({ onFileUploaded }: FileUploadProps) {
+  const [isUploading, setIsUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Normalize ambiguous keys
-  let normalizedKey = keyInner;
-  if (normalizedKey.toLowerCase() === 'name') {
-    normalizedKey = context === 'investor' ? 'Investor Name' : (context === 'company' ? 'Company Name' : 'Name');
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setIsUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Upload failed')
+
+      // build map of placeholders
+      const map = new Map<string, PlaceholderInfo>()
+      (data.placeholders || []).forEach((p: any) => {
+        map.set(p.key, {
+          key: p.key,
+          originalFormat: `{{${p.key}}}`,
+          index: p.position,
+          prefix: p.key.toLowerCase().includes('amount') || p.key.toLowerCase().includes('valuation') ? '$' : '',
+          context: p.context || undefined,
+        })
+      })
+
+      onFileUploaded(data.previewText || '', map, data.templateFilename)
+    } catch (err: any) {
+      console.error('Upload failed', err)
+      setError(String(err?.message || err))
+    } finally {
+      setIsUploading(false)
+    }
   }
-  if (normalizedKey.toLowerCase() === 'title') {
-    normalizedKey = context === 'investor' ? 'Investor Title' : (context === 'company' ? 'Company Title' : 'Title');
-  }
 
-  // store
-  detected.set(normalizedKey, {
-     key: normalizedKey,
-     originalFormat: raw,
-     position: index,
-     context,
-  });
+  return (
+    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-12 text-center bg-white dark:bg-gray-950">
+      <h2 className="text-2xl font-semibold mb-4">Upload a Legal Document (.docx)</h2>
+      <input type="file" accept=".docx" onChange={handleFileChange} className="mb-4 cursor-pointer" />
+      {isUploading && <p className="text-gray-500 dark:text-gray-400">Normalizing document and extracting placeholders...</p>}
+      {error && <p className="text-red-500 mt-2">{error}</p>}
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">The server will auto-normalize split runs and detect placeholders.</p>
+    </div>
+  )
 }

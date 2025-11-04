@@ -1,39 +1,27 @@
-import { PlaceholderInfo, PlaceholderData } from '@/types/placeholder'
-
 'use client'
-
 import { useState } from 'react'
 import FileUpload from '@/components/FileUpload'
 import DocumentProcessor from '@/components/DocumentProcessor'
 import DocumentViewer from '@/components/DocumentViewer'
+import { PlaceholderInfo, PlaceholderData } from '@/types/placeholders'
 
 export default function HomePage() {
-  const [documentContent, setDocumentContent] = useState('')
-  const [placeholders, setPlaceholders] = useState(new Map())
-  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null)
-  const [completedContent, setCompletedContent] = useState('')
-  const [filledData, setFilledData] = useState(new Map())
+  const [documentContent, setDocumentContent] = useState<string>('')
+  const [placeholders, setPlaceholders] = useState<Map<string, PlaceholderInfo>>(new Map())
+  const [templateFilename, setTemplateFilename] = useState<string>('')
+  const [completedContent, setCompletedContent] = useState<string>('')
+  const [filledData, setFilledData] = useState<Map<string, PlaceholderData>>(new Map())
 
-  const handleFileUploaded = (
-  content: string,
-  detected: Map<string, PlaceholderInfo>,
-  buffer: ArrayBuffer
-) => {
-  setDocumentContent(content)
-  setPlaceholders(detected)
-  setFileBuffer(buffer)
-}
+  const handleFileUploaded = (previewText: string, detected: Map<string, PlaceholderInfo>, tplFilename: string) => {
+    setDocumentContent(previewText)
+    setPlaceholders(detected)
+    setTemplateFilename(tplFilename)
+  }
 
-const handleDocumentCompleted = (
-  content: string,
-  filled: Map<string, PlaceholderData>,
-  buffer: ArrayBuffer
-) => {
-  setCompletedContent(content)
-  setFilledData(filled)
-  setFileBuffer(buffer)
-}
-
+  const handleDocumentCompleted = (content: string, filled: Map<string, PlaceholderData>, buffer: ArrayBuffer) => {
+    setCompletedContent(content)
+    setFilledData(filled)
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex flex-col items-center p-6">
@@ -44,15 +32,11 @@ const handleDocumentCompleted = (
         <DocumentProcessor
           documentContent={documentContent}
           placeholders={placeholders}
-          fileBuffer={fileBuffer!}
+          templateFilename={templateFilename}
           onDocumentCompleted={handleDocumentCompleted}
         />
       ) : (
-        <DocumentViewer
-          completedContent={completedContent}
-          filledData={filledData}
-          fileBuffer={fileBuffer!}
-        />
+        <DocumentViewer completedContent={completedContent} filledData={filledData} fileBuffer={new ArrayBuffer(0)} />
       )}
     </main>
   )

@@ -1,6 +1,6 @@
 export interface PlaceholderInfo {
   key: string
-  originalFormat: string
+  originalFormat?: string
   index?: number
   prefix?: string
   context?: string
